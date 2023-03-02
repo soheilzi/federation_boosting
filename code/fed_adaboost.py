@@ -27,7 +27,7 @@ import wandb
 ####################### ATTENTION ########################
 # Set WANDB to True if you want to user Weights & biases #
 ##########################################################
-WANDB = True                                           
+WANDB = True
 ##########################################################
 
 def manage_options() -> Values:
@@ -41,7 +41,7 @@ def manage_options() -> Values:
                           "the forestcover12 datasets for which it is used a default split size. The dataset "\
                           "can be also a path to a svmlight file.")
     parser.add_option("-s", "--seed",
-                      dest="seed", default=42, type="int", 
+                      dest="seed", default=42, type="int",
                       help="Pseudo-random seed for replicability purposes - default=42")
     parser.add_option("-t", "--test_size",
                       dest="test_size", default=.1, type="float",
@@ -115,7 +115,7 @@ def load_mnist_dataset():
     print("Downloading MNIST")
     for k, v in tqdm.tqdm(URL_MNIST.items()):
         ureq.urlretrieve(v[0] + v[1], "./data/" + v[1])
-    
+
     mnist = {}
     for k in ["training_images", "test_images"]:
         name = "./data/" + URL_MNIST[k][1]
@@ -161,7 +161,7 @@ def load_binary_classification_dataset(name_or_path: str,
     if name_or_path == "breast":
         dataset = datasets.load_breast_cancer()
         X, y = dataset.data, dataset.target
-    # Expected: 
+    # Expected:
     elif name_or_path.startswith("mnist"):
         digits = name_or_path.replace("mnist", "")
         d1, d2 = int(digits[0]), int(digits[1])
@@ -206,7 +206,7 @@ def load_binary_classification_dataset(name_or_path: str,
 
     y = 2*y - 1 # 0/1 labels to -1/1
     X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=test_size, random_state=seed)
-    
+
     return X_train, X_test, y_train, y_test
 
 
@@ -217,7 +217,7 @@ def split_dataset(X: np.ndarray,
                   n: int) -> Tuple[np.ndarray, np.ndarray]:
     if n > X.shape[0]:
         raise ValueError("# of users must be <= than the # of examples in the training set.")
-    
+
     tot = X.shape[0]
     X_tr = [X[list(range(i, tot, n)), :] for i in range(n)]
     y_tr = [y[list(range(i, tot, n))] for i in range(n)]
@@ -250,23 +250,23 @@ class Boosting():
         self.clf_class = clf_class
         self.clfs: List[ClassifierMixin] = []
         self.alpha: List[ClassifierMixin] = []
-    
+
     def fit(self: Boosting,
             X: np.ndarray,
             y: np.ndarray,
             checkpoints: Optional[List[int]]=None,
             seed: int=42) -> Generator[Boosting, None, None]:
         raise NotImplementedError()
-    
+
     def num_weak_learners(self: Boosting):
         return len(self.clfs)
-    
+
     def predict(self: Boosting,
                 X: np.ndarray) -> np.ndarray:
         y_pred = np.zeros(np.shape(X)[0])
         for i, clf in enumerate(self.clfs):
             y_pred += self.alpha[i] * clf.predict(X)
-        return 2*(y_pred.flatten() >= 0).astype(int) - 1 
+        return 2*(y_pred.flatten() >= 0).astype(int) - 1
 
 
 class Adaboost(Boosting):
@@ -305,10 +305,10 @@ class Hyp():
     def __init__(self: Hyp,
                  ht: List[ClassifierMixin]):
         self.ht = ht
-    
+
     def predict(self: Hyp,
                 X: np.ndarray) -> np.ndarray:
-        return 2*(np.sum([h.predict(X) for h in self.ht], axis=0) >= 0).astype(int) - 1 
+        return 2*(np.sum([h.predict(X) for h in self.ht], axis=0) >= 0).astype(int) - 1
 
 
 class Distboost(Boosting):
@@ -336,18 +336,18 @@ class Distboost(Boosting):
 
             H = Hyp(ht)
             self.clfs.append(H)
-            
+
             min_error = 0
             predictions = []
             for j, X_ in enumerate(X):
                 predictions.append(H.predict(X_))
                 min_error += sum(D[j][y[j] != predictions[j]])
             self.alpha.append(0.5 * log((1.0 - min_error) / (min_error + 1e-10)))
-            
+
             for j, X_ in enumerate(X):
                 D[j] *= np.exp(-self.alpha[t] * y[j] * predictions[j])
             Dsum = sum([np.sum(d) for d in D])
-            
+
             for d in D:
                 d /= Dsum
 
@@ -356,13 +356,13 @@ class Distboost(Boosting):
 
 
 class Preweak(Boosting):
-    
+
     def fit(self: Preweak,
             X: np.ndarray,
             y: np.ndarray,
             checkpoints: Optional[List[int]]=None,
             seed: int=42) -> Generator[Preweak, None, None]:
-        
+
         np.random.seed(seed)
         cks = set(checkpoints) if checkpoints is not None else [self.n_clf]
         ht = []
@@ -373,10 +373,10 @@ class Preweak(Boosting):
             ht.extend(clf.clfs)
 
         # merge the datasets into one (not possible in a real distributed/federated scenario)
-        X_ = np.vstack(X) 
+        X_ = np.vstack(X)
         y_ = np.concatenate(y)
-        
-        # precompute the predictions so then I simply have to draw according to the sampling 
+
+        # precompute the predictions so then I simply have to draw according to the sampling
         ht_pred = {h : h.predict(X_) for h in ht}
         n_samples = X_.shape[0]
         D = np.full(n_samples, (1 / n_samples))
@@ -405,22 +405,22 @@ class Preweak(Boosting):
 
 
 if __name__ == "__main__":
-    
+
     MODEL_NAMES: List[str] = ["my_ada", "distboost", "preweak"]
     options: Values = manage_options()
     print("Configuration:\n", json.dumps(vars(options), indent=4, sort_keys=True))
     assert options.model in MODEL_NAMES, "Model %s not supported!" %options.model
-    
+
     MODEL: str = options.model
     DATASET: str = options.dataset
     TAGS: List[str] = options.tags.split(",")
     if WANDB:
-        wandb.init(project='FederatedAdaboost',
-                   entity='mlgroup',
+        wandb.init(project='fedboost',
+                   # entity='mlgroup',
                    name="%s_%s" %(MODEL, DATASET),
                    tags=[DATASET, MODEL] + TAGS,
                    config=options.__dict__)
-    
+
     TEST_SIZE: float = options.test_size
     NORMALIZE: bool = options.normalize
     N_CLIENTS: int = options.n_clients
@@ -435,10 +435,10 @@ if __name__ == "__main__":
                                                                           test_size=TEST_SIZE,
                                                                           seed=SEED)
     if NORMALIZE:
-        scaler = StandardScaler().fit(X_train)   
+        scaler = StandardScaler().fit(X_train)
         X_train = scaler.transform(X_train)
         X_test = scaler.transform(X_test)
-    
+
     print("# weak learners: %s" %N_ESTIMATORS)
     print("Training set size: %d" %X_train.shape[0])
     print("Test set size: %d" %X_test.shape[0])
@@ -451,7 +451,7 @@ if __name__ == "__main__":
 
     model: Boosting
 
-    if MODEL == "my_ada": 
+    if MODEL == "my_ada":
         model = Adaboost(max(N_ESTIMATORS), WEAK_LEARNER)
         X_, y_ = X_train, y_train
     elif MODEL == "distboost":
@@ -472,14 +472,14 @@ if __name__ == "__main__":
         log_dict = {
             "train" : {
                 "n_estimators" : step,
-                "accuracy": accuracy_score(y_train, y_pred_tr), 
+                "accuracy": accuracy_score(y_train, y_pred_tr),
                 "precision": precision_score(y_train, y_pred_tr),
                 "recall": recall_score(y_train, y_pred_tr),
                 "f1": f1_score(y_train, y_pred_tr)
             },
             "test" : {
                 "n_estimators" : step,
-                "accuracy": accuracy_score(y_test, y_pred_te), 
+                "accuracy": accuracy_score(y_test, y_pred_te),
                 "precision": precision_score(y_test, y_pred_te),
                 "recall": recall_score(y_test, y_pred_te),
                 "f1": f1_score(y_test, y_pred_te)

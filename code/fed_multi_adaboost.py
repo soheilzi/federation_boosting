@@ -27,7 +27,7 @@ from fed_adaboost import Boosting, load_mnist_dataset, split_dataset, split_data
 ####################### ATTENTION #######################
 # Set WANDB to True if you want to use Weights & biases #
 #########################################################
-WANDB = False                                           
+WANDB = False
 #########################################################
 
 
@@ -39,7 +39,7 @@ def manage_options() -> Dict[str, Any]:
                           "Supported dataset: iris, mnist, pandigits, letter and sat. The dataset "\
                           "can be also a path to a svmlight file.")
     parser.add_option("-s", "--seed",
-                      dest="seed", default=42, type="int", 
+                      dest="seed", default=42, type="int",
                       help="Pseudo-random seed for replicability purposes - default=42")
     parser.add_option("-t", "--test_size",
                       dest="test_size", default=.1, type="float",
@@ -126,7 +126,7 @@ def load_classification_dataset(name_or_path: str,
         X = X.toarray()
 
     X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=test_size, random_state=seed)
-    
+
     return X_train, X_test, y_train, y_test
 
 
@@ -185,7 +185,7 @@ class Hyp():
                  K: int):
         self.ht = ht
         self.K = K
-    
+
     def predict(self: Hyp,
                 X: np.ndarray) -> np.ndarray:
         y_pred = np.zeros((X.shape[0], self.K))
@@ -221,7 +221,7 @@ class DistSamme(MulticlassBoosting):
 
             H = Hyp(ht, self.K)
             self.clfs.append(H)
-            
+
             min_error = 0
             predictions = []
             for j, X_ in enumerate(X):
@@ -232,7 +232,7 @@ class DistSamme(MulticlassBoosting):
             for j, X_ in enumerate(X):
                 D[j] *= np.exp(self.alpha[t] * (y[j] != predictions[j]))
             Dsum = sum([np.sum(d) for d in D])
-            
+
             for d in D:
                 d /= Dsum
 
@@ -246,7 +246,7 @@ class PreweakSamme(MulticlassBoosting):
             y: np.ndarray,
             checkpoints: Optional[List[int]]=None,
             seed: int=42) -> Generator[PreweakSamme]:
-        
+
         np.random.seed(seed)
         self.K = len(set(np.concatenate(y))) # assuming that all classes are in y
         cks = set(checkpoints) if checkpoints is not None else [self.n_clf]
@@ -258,10 +258,10 @@ class PreweakSamme(MulticlassBoosting):
             ht.extend(clf.clfs)
 
         # merge the datasets into one (not possible in a real distributed/federated scenario)
-        X_ = np.vstack(X) 
+        X_ = np.vstack(X)
         y_ = np.concatenate(y)
-        
-        # precompute the predictions so then I simply have to draw according to the sampling 
+
+        # precompute the predictions so then I simply have to draw according to the sampling
         ht_pred = {h : h.predict(X_) for h in ht}
         n_samples = X_.shape[0]
         D = np.full(n_samples, (1 / n_samples))
@@ -307,7 +307,7 @@ class AdaboostF1(MulticlassBoosting):
         cks = set(checkpoints) if checkpoints is not None else [self.n_clf]
 
         # merge the datasets into one (not possible in a real distributed/federated scenario)
-        X_ = np.vstack(X) 
+        X_ = np.vstack(X)
         y_ = np.concatenate(y)
 
         n_samples = X_.shape[0]
@@ -337,7 +337,7 @@ class AdaboostF1(MulticlassBoosting):
             self.alpha.append(log((1.0 - best_error) / (best_error + 1e-10)) + log(self.K-1)) # kind of additive smoothing
             D *= np.exp(self.alpha[t] * (y_ != predictions))
 
-            # self.alpha.append(0.5 * log(1.0 - best_error) / (best_error + 1e-10)) # kind of additive smoothing 
+            # self.alpha.append(0.5 * log(1.0 - best_error) / (best_error + 1e-10)) # kind of additive smoothing
             # D *= np.exp(-self.alpha[t] * y_ * predictions)
 
             D /= np.sum(D)
@@ -350,12 +350,12 @@ class AdaboostF1(MulticlassBoosting):
 
 
 if __name__ == "__main__":
-    
+
     MODEL_NAMES: List[str] = ["samme", "distsamme", "preweaksamme", "adaboostf1"]
     options: Dict[str, Any] = manage_options()
     print("Configuration:\n", json.dumps(vars(options), indent=4, sort_keys=True))
     assert options.model in MODEL_NAMES, "Model %s not supported!" %options.model
-    
+
     MODEL: str = options.model
     DATASET: str = options.dataset
     TAGS: List[str] = options.tags.split(",")
@@ -365,7 +365,7 @@ if __name__ == "__main__":
                    name="%s_%s" %(MODEL, DATASET),
                    tags=[DATASET, MODEL] + TAGS,
                    config=options)
-    
+
     TEST_SIZE: float = options.test_size
     NORMALIZE: bool = options.normalize
     N_CLIENTS: int = options.n_clients
@@ -379,7 +379,7 @@ if __name__ == "__main__":
                                                                    test_size=TEST_SIZE,
                                                                    seed=SEED)
     if NORMALIZE:
-        scaler = StandardScaler().fit(X_train)   
+        scaler = StandardScaler().fit(X_train)
         X_train = scaler.transform(X_train)
         X_test = scaler.transform(X_test)
 
@@ -389,7 +389,7 @@ if __name__ == "__main__":
     X_tr, y_tr = split_dataset(X_train, y_train, N_CLIENTS)
     X_, y_ = X_tr, y_tr
 
-    if MODEL == "samme": 
+    if MODEL == "samme":
         model = Samme(max(N_ESTIMATORS), WEAK_LEARNER)
         X_, y_ = X_train, y_train
     elif MODEL == "distsamme":
@@ -410,14 +410,14 @@ if __name__ == "__main__":
         log_dict = {
             "train" : {
                 "n_estimators" : step,
-                "accuracy": accuracy_score(y_train, y_pred_tr), 
+                "accuracy": accuracy_score(y_train, y_pred_tr),
                 "precision": precision_score(y_train, y_pred_tr, average="micro"),
                 "recall": recall_score(y_train, y_pred_tr, average="micro"),
                 "f1": f1_score(y_train, y_pred_tr, average="micro")
             },
             "test" : {
                 "n_estimators" : step,
-                "accuracy": accuracy_score(y_test, y_pred_te), 
+                "accuracy": accuracy_score(y_test, y_pred_te),
                 "precision": precision_score(y_test, y_pred_te, average="micro"),
                 "recall": recall_score(y_test, y_pred_te, average="micro"),
                 "f1": f1_score(y_test, y_pred_te, average="micro")

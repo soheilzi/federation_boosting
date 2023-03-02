@@ -26,11 +26,11 @@ def plot_fname(dataset: str, noniidness: str) -> str:
     if dataset == "Datasets.kr-vs-kp":
         dataset = "Datasets.kr_vs_kp"
 
-    skw_maps = {"Noniidness.uniform": "uniform", 
-                "Noniidness.num_examples_skw":"num_examples", 
+    skw_maps = {"Noniidness.uniform": "uniform",
+                "Noniidness.num_examples_skw":"num_examples",
                 "Noniidness.lbl_skw":"lbl",
-                "Noniidness.dirichlet_lbl_skw":"dirichlet", 
-                "Noniidness.pathological_skw":"pathological", 
+                "Noniidness.dirichlet_lbl_skw":"dirichlet",
+                "Noniidness.pathological_skw":"pathological",
                 "Noniidness.covariate_shift": "covariate_shift" }
     return f"images/skw/{skw_maps[noniidness]}/f1_{dataset}_{noniidness}.pdf"
 
@@ -52,9 +52,9 @@ def plotlist(verbose=False) -> list[str]:
 def experiment_to_skip(ds: str, seed: int, model: str, noniid: str, verbose: bool):
     """
     Returns True if the experiment should be skipped.
-    Presently: datasets "adult" e "kr-vs-kp" should be skipped when iidness is in 
+    Presently: datasets "adult" e "kr-vs-kp" should be skipped when iidness is in
         "lbl_skw", "dirichlet_lbl_skw", "pathological_skw" (these are binary datasets which cannot
-        work with these types of non-iidness)        
+        work with these types of non-iidness)
     """
     if ds in ["adult", "kr-vs-kp", "forestcover"] and noniid in ["lbl_skw", "dirichlet_lbl_skw", "pathological_skw"]:
         if verbose:
@@ -73,7 +73,7 @@ def experiment_to_skip(ds: str, seed: int, model: str, noniid: str, verbose: boo
 
 def experiment_list(verbose: bool = False) -> Tuple[list[ExpDescription], list[ExpDescription]]:
     """
-    Returns a list of all the experiments that should be launched (i.e., the 
+    Returns a list of all the experiments that should be launched (i.e., the
     list of all experiments minus the ones that should be skipped).
 
     if verbose is True, then skipped experiments are logged to stdout.
@@ -99,7 +99,7 @@ def experiment_list(verbose: bool = False) -> Tuple[list[ExpDescription], list[E
 
 def local_experiment_list(verbose: bool = False) -> Tuple[list[ExpDescription], list[ExpDescription]]:
     """
-    Returns a list of all the local experiments that should be launched (i.e., the 
+    Returns a list of all the local experiments that should be launched (i.e., the
     list of all experiments minus the ones that should be skipped).
 
     if verbose is True, then skipped experiments are logged to stdout.

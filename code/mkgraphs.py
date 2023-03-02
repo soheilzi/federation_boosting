@@ -36,10 +36,16 @@ def avg_stats(runs:list, stat:str) -> pd.DataFrame:
 def get_plot_data_from_wandb(dataset, non_iidness):
     api: wandb.Api = wandb.Api()
 
-    entity, project = "mlgroup", "FederatedAdaboost "
-    runs = api.runs(entity + "/" + project, filters={
-                    "config.dataset": dataset, "config.non_iidness": non_iidness}, order="config.model")
-
+    entity, project = "fed-boost", "fedboost"
+    runs = api.runs(entity + "/" + project, order="config.model")
+    # the original is broken, but this works
+    runs = [r for r in runs if r.config["dataset"] == dataset]
+    # the original is broken, but this works
+    # for r in api.runs(entity + "/" + project):
+    #     ...:     print(r.config["dataset"]
+    #     ...:     )
+    #     ...:     print(r.history())
+    print(runs)
     exps_by_model = groupby(runs, lambda r: r.config["model"])
 
     data = pd.DataFrame()
@@ -65,17 +71,18 @@ def get_plot_data(dataset, non_iidness):
         return pd.read_pickle(cached_data_fname)
 
 @app.command()
-def plot(dataset:str, non_iidness:str):
+def plot(dataset:str):
     """
     Plot the results of the runs
     """
     entity:str
-    project:str 
+    project:str
 
     dataset = dataset.replace("-", "_")
 
+    non_iidness="Noniidness.uniform"
     data = get_plot_data(dataset, non_iidness)
-
+    print(data)
     try:
         sns.set(font_scale=2.5)
         fig,ax = plt.subplots(figsize=(12,9))
@@ -84,7 +91,6 @@ def plot(dataset:str, non_iidness:str):
         # plt.ylim(0.6, 1.0)
         plt.xlabel("Adaboost step ($t$)")
         plt.ylabel("F1")
-
         plt.savefig(plot_fname(dataset, non_iidness))
         plt.close(fig)
     except ValueError as exc:
@@ -94,12 +100,9 @@ def plot(dataset:str, non_iidness:str):
 @app.command()
 def plot_all(verbose:bool=False):
     pl = plotlist(verbose=verbose)
-    
+
     for plotelems in progress.track(pl, description="Plotting..."):
         plot(*plotelems)
 
-
 if __name__ == "__main__":
     app()
-
-
