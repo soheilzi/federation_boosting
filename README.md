@@ -20,6 +20,4 @@ Federated Learning has been proposed to develop better AI systems without compro
 
 The code in this repository implements **FL algorithms that build federated models without relying on gradient descent-based methods**. The code is complete with all the necessary to reproduce the experiments performed in the paper.
 
-
-
-
+## Setup

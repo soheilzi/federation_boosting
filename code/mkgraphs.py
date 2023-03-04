@@ -20,6 +20,14 @@ console = Console()
 traceback.install()
 app = typer.Typer()
 
+class Noniidness(Enum):
+    uniform = "uniform"
+    num_examples_skw = "num_examples_skw"
+    lbl_skw = "lbl_skw"
+    dirichlet_lbl_skw = "dirichlet_lbl_skw"
+    pathological_skw = "pathological_skw"
+    covariate_shift = "covariate_shift"
+
 def avg_stats(runs:list, stat:str) -> pd.DataFrame:
     """
     Takes a list of repetitions for a given experiment and returns a numpy array with the averages
@@ -40,6 +48,7 @@ def get_plot_data_from_wandb(dataset, non_iidness):
     runs = api.runs(entity + "/" + project, order="config.model")
     # the original is broken, but this works
     runs = [r for r in runs if r.config["dataset"] == dataset]
+    runs = [r for r in runs if r.config["non_iidness"] == non_iidness]
     # the original is broken, but this works
     # for r in api.runs(entity + "/" + project):
     #     ...:     print(r.config["dataset"]
@@ -71,7 +80,7 @@ def get_plot_data(dataset, non_iidness):
         return pd.read_pickle(cached_data_fname)
 
 @app.command()
-def plot(dataset:str):
+def plot(dataset:str, non_iidness: str):
     """
     Plot the results of the runs
     """
@@ -80,7 +89,6 @@ def plot(dataset:str):
 
     dataset = dataset.replace("-", "_")
 
-    non_iidness="Noniidness.uniform"
     data = get_plot_data(dataset, non_iidness)
     print(data)
     try:
